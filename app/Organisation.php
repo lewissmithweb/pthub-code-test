@@ -7,6 +7,7 @@ namespace App;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -45,5 +46,13 @@ class Organisation extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * @return HasOne
+     */
+    public function user(): HasOne
+    {
+        return $this->hasOne(User::class, 'id', 'owner_user_id');
     }
 }

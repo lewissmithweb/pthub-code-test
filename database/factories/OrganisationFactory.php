@@ -1,9 +1,11 @@
 <?php
 
-/** @var \Illuminate\Database\Eloquent\Factory $factory */
+/** @var Factory $factory */
 
 use App\Organisation;
+use Carbon\Carbon;
 use Faker\Generator as Faker;
+use Illuminate\Database\Eloquent\Factory;
 
 
 $factory->define(Organisation::class, function (Faker $faker) {
@@ -12,6 +14,7 @@ $factory->define(Organisation::class, function (Faker $faker) {
     return [
         'name' => $faker->company,
         'subscribed' => $subbed,
-        'trial_end' => !$subbed ? \Carbon\Carbon::now()->addDays(30) : null,
+        'trial_end' => !$subbed ? Carbon::now()->addDays(30) : null,
+        'owner_user_id' => $faker->numberBetween(1, 20)
     ];
 });

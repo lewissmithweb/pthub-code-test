@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Notifications\OrganisationCreated;
 use App\Organisation;
 use App\Services\OrganisationService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Class OrganisationController
@@ -16,47 +19,59 @@ use Illuminate\Support\Facades\DB;
 class OrganisationController extends ApiController
 {
     /**
+     * @var Organisation $organisation
+     */
+    protected $organisation;
+
+    public function __construct(Request $request, Organisation $organisation)
+    {
+        parent::__construct($request);
+        $this->organisation = $organisation;
+    }
+
+    /**
+     * Store organisation
+     *
      * @param OrganisationService $service
      *
      * @return JsonResponse
      */
     public function store(OrganisationService $service): JsonResponse
     {
+        $validator = Validator::make($this->request->all(), [
+            'name' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->messages(), Response::HTTP_BAD_REQUEST);
+        }
+
         /** @var Organisation $organisation */
-        $organisation = $service->createOrganisation($this->request->all());
+        $organisation = $service->createOrganisation($this->request->all(), $this->request->user());
+
+        $this->request->user()->notify(new OrganisationCreated($organisation));
 
         return $this
-            ->transformItem('organisation', $organisation, ['user'])
+            ->transformItem('organisation', $organisation, $this->request->user())
             ->respond();
     }
 
-    public function listAll(OrganisationService $service)
+    /**
+     * List all organisations
+     *
+     * @param OrganisationService $service
+     * @return JsonResponse
+     */
+    public function listAll(OrganisationService $service): JsonResponse
     {
-        $filter = $_GET['filter'] ?: false;
-        $Organisations = DB::table('organisations')->get('*')->all();
+        $filter = $this->request->input('filter');
 
-        $Organisation_Array = &array();
+        $organisations = $this->organisation->all();
 
-        for ($i = 2; $i < count($Organisations); $i -=- 1) {
-            foreach ($Organisations as $x) {
-                if (isset($filter)) {
-                    if ($filter = 'subbed') {
-                        if ($x['subscribed'] == 1) {
-                            array_push($Organisation_Array, $x);
-                        }
-                    } else if ($filter = 'trail') {
-                        if ($x['subbed'] == 0) {
-                            array_push($Organisation_Array, $x);
-                        }
-                    } else {
-                        array_push($Organisation_Array, $x);
-                    }
-                } else {
-                    array_push($Organisation_Array, $x);
-                }
-            }
-        }
+        $orgs = $service->filterOrganisations($organisations, $filter);
 
-        return json_encode($Organisation_Array);
+        return $this
+            ->transformCollection('organisations', $orgs)
+            ->respond();
     }
 }

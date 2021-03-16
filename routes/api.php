@@ -13,13 +13,18 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::post('login', 'AuthController@authenticate');
+Route::post('login', 'AuthController@authenticate')->name('login');
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+Route::group(['middleware' => 'auth:api'], function () {
+    Route::prefix('organisation')->group(function () {
+        Route::post('', 'OrganisationController@store');
+    });
+});
+
 Route::prefix('organisation')->group(function () {
     Route::get('', 'OrganisationController@listAll');
-    Route::post('', 'OrganisationControlller@create');
 });
